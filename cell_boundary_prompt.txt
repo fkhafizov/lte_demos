@@ -1,0 +1,159 @@
+
+STEP 1: Setup
+
+Write a single HTML file based JS  application.
+Save it in "cell_boundary_v1.html" file.
+This app models a small LTE network with four cells: N,W,S,E with ovelapping coverage.
+For example, N,W,S,E located in the North, West, South, East and are pointed towards the center.
+Make carrier for each cell configurable: it will be either 800 MHz of AWS.
+By default Assume N,W are 800 MHz carrier cells, S,E are 800 MHz carrier cells.
+
+Place the network in Plano Texas. 
+Use leaflet open street map as a basemap to make the demo more relistic.
+Add a check mark widget for sitching the leaflet map off.
+
+The network has M stationary LTE UE devices places randomly.
+Make M configurable.
+Each UE has coordinates (x,y) and a dot showing it on the map. 
+Make the dot size configurable.
+
+Compute RSRP signal of each UE to all four cells. 
+Add a random factor R to the RSRP value.
+Choose the strongest signal and connect to the corresponding cell.
+Use color coding red, blue, green, cyan for each UE connected to N,W,S,E , respectively.
+
+make background light yellow. 
+show sectors =off by default.
+default UE count 1000. Max UE count 5000. Min UE count =10.
+default dot radius=3. Min dor radius =1. max UE radius = 6.
+
+
+
+Step 2
+
+Add a button STEP2 for executing the following code.
+
+Select a cell A=N. We will compute it's effective boundary in a few steps.
+Look at all UE RSRP measurements: some will be connected to A=N, 
+The rest of the UEs will be connected to cells which are not A (ie W,S,E).
+We will denote them by O = UEs connected to other cells and use black color for them
+Use back color for those points corresponding to O on the map.
+
+Generate a GxG grid over the coverage area. Make G configurable. 
+For each grid cell compute average of nearby RSRP of nearby locations for A and O. 
+In the center of that cell put either color of A or O depending on the strength of the avarage RSRP signals.
+Show the new map on another canvas titles STEP2. 
+
+
+
+
+https://github.com/ftk1000/job_search_separation/blob/main/cell_boundary.md
+
+https://claude.ai/chat/0a257806-9084-4809-a45e-d35a88d44267
+
+(base)  04:30 paulpaul ~/Library/Mobile Documents/com~apple~CloudDocs/code/cell_boundary $  pwd
+/Users/paulpaul/Library/Mobile Documents/com~apple~CloudDocs/code/cell_boundary
+(base)  04:30 paulpaul ~/Library/Mobile Documents/com~apple~CloudDocs/code/cell_boundary $  ls -ltra
+total 272
+-rw-r--r--@  1 paulpaul  staff  41553 Mar 31 03:28 iot_sim_1_sector.html
+-rw-r--r--@  1 paulpaul  staff  88024 Mar 31 03:28 iot_sim_2_sectors.html
+-rw-r--r--   1 paulpaul  staff   2348 Mar 31 04:30 cell_boundary_prompt.txt
+
+https://fkhafizov.github.io/lte_demos
+
+https://github.com/fkhafizov/lte_demos
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Include style formatting in the HTML file.
+
+Place a cell tower at location A with coordinates (Alat,Alon) (eg Alat=33.0712176, Alon=-96.8234898).
+Assume the azimuth is D degrees (eg D=30 degrees).
+Sector width 120 degrees.
+The height of antenna is H meters (eg H=6 meters).
+Radio frequency is F MHz (eg F=2100 MHz).
+Transmit power is W watt (eg W=40 Watt).
+LTE Channel is BW MHz (eg BW=10 MHz)
+
+Assume standard noise floor, denoted by N, for a city like Plano, TX, is some "Practical Urban Noise Floor" in the range from	–104 dBm to –100 dBm.
+Typical radious of coverage area is 0.5–1 km in Dense Urban	area and it is 1-2 km in Urban/Suburban	area.
+Typical UL SINR in urban area is 0–25 dB (median 5–15 dB).
+
+
+Write a p5.js  with very nice visualization that 
+1. places N (eg N=100) IOT devices in a single sector. 
+2. assignes UL SINR to each device according to distance and UL SINR range specified above: Typical UL SINR in urban area is 0–25 dB (median 5–15 dB).
+
+Then write a culstering algorithm that defines 5-10 clusters of IOT devices based on their UL SINR and proximity to each other.
+Draw a boundary for each cluster.
+
+Make parameters N, B, T1, T2, P1, P2, Alat, Alon, D, H, F, W, BW configurable.
+Add control buttons: START, STOP, PAUSE, RESUME, RESET.
