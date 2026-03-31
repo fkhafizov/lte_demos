@@ -2,6 +2,8 @@
 
 2026.03.31
 
+* https://fkhafizov.github.io/lte_demos
+
 
 ### iot stuff
 ```
