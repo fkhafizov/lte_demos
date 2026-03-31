@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTE Cell Boundary Simulator v5 — Plano TX</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// Suppress Leaflet's attempt to load default marker PNGs from CDN
+// (causes "Access blocked" icon in sandboxed / offline environments)
+(function() {
+  const blank = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({ iconUrl: blank, iconRetinaUrl: blank, shadowUrl: '' });
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #fdf8e1;
+    --panel:     rgba(255,252,230,0.95);
+    --border:    rgba(160,130,40,0.28);
+    --accent:    #7a5c00;
+    --text:      #3a2e00;
+    --muted:     #9a8840;
+    --cell-N:    #d42020;
+    --cell-W:    #1a55cc;
+    --cell-S:    #1a8a3a;
+    --cell-E:    #007f7f;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+
+  body {
+    font-family: 'Share Tech Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ─────────────────────────────────────────── */
+  #header {
+    background: linear-gradient(90deg, #f5edbb 0%, #faf2ce 50%, #f5edbb 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 7px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 2000;
+  }
+  #header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  #header .sub {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 1px;
+  }
+  #header .ts {
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── Main area (hosts step1 + step2 side by side) ──── */
+  #main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+  }
+
+  /* ── Map wrap (Step 1) ──────────────────────────────── */
+  #map-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    transition: flex 0.3s ease;
+  }
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Step 2 pane ────────────────────────────────────── */
+  #step2-pane {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: none;
+    border-left: 2px solid var(--border);
+    min-width: 0;
+  }
+  #step2-pane.visible {
+    display: flex;
+    flex-direction: column;
+  }
+  #map2 {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+  #step2-title {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 16px;
+    z-index: 1000;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+  }
+  #step2-legend {
+    position: absolute;
+    bottom: 42px;
+    right: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 13px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    font-size: 0.65rem;
+  }
+  #step2-stats {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 16px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    display: flex;
+    gap: 18px;
+    white-space: nowrap;
+    font-size: 0.62rem;
+    color: var(--muted);
+  }
+  #step2-stats span { color: var(--accent); font-size: 0.72rem; }
+  #close-step2 {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1001;
+    padding: 5px 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 1px;
+    backdrop-filter: blur(10px);
+  }
+  #close-step2:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Leaflet tile filter — OSM */
+  .leaflet-tile-pane {
+    opacity: 0.88;
+    filter: saturate(0.8) brightness(1.02);
+  }
+  .leaflet-container {
+    background: #e8e0c8 !important;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* ── Floating panels shared ─────────────────────────── */
+  .fpanel {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 13px 14px;
+    z-index: 1000;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 1px var(--border) inset;
+  }
+  .panel-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Controls ───────────────────────────────────────── */
+  #controls {
+    top: 12px;
+    left: 12px;
+    width: 218px;
+  }
+  .ctrl-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+  }
+  .ctrl-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; }
+  .ctrl-val   { font-size: 0.72rem; color: var(--text); min-width: 30px; text-align: right; }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+    margin-bottom: 9px;
+    height: 3px;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    cursor: pointer;
+  }
+  .toggle-row input[type=checkbox] {
+    accent-color: var(--accent);
+    cursor: pointer;
+    width: 13px; height: 13px;
+  }
+  .btn {
+    width: 100%;
+    padding: 8px 0;
+    margin-top: 4px;
+    background: linear-gradient(135deg, rgba(0,210,255,0.12), rgba(0,80,180,0.08));
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .btn:hover {
+    background: rgba(0,210,255,0.22);
+    box-shadow: 0 0 14px rgba(0,210,255,0.28);
+  }
+  .btn:active { transform: scale(0.98); }
+
+  /* ── Legend ─────────────────────────────────────────── */
+  #legend {
+    top: 12px;
+    right: 12px;
+    width: 192px;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 7px;
+  }
+  .leg-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 5px currentColor;
+  }
+  .leg-meta {
+    flex: 1;
+    font-size: 0.65rem;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  .leg-band {
+    font-size: 0.58rem;
+    color: var(--muted);
+    display: block;
+  }
+  .leg-count {
+    font-size: 0.8rem;
+    font-weight: 700;
+    min-width: 24px;
+    text-align: right;
+  }
+  .leg-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 6px 0 8px;
+  }
+
+  /* ── Stats bar ──────────────────────────────────────── */
+  #stats {
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 20px;
+    display: flex;
+    gap: 22px;
+    white-space: nowrap;
+  }
+  .stat { font-size: 0.62rem; color: var(--muted); }
+  .stat span { color: var(--accent); font-size: 0.72rem; }
+
+  /* ── Leaflet tooltip overrides ──────────────────────── */
+  .leaflet-tooltip {
+    background: rgba(255,252,230,0.97) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 4px !important;
+    color: var(--text) !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 0.68rem !important;
+    padding: 6px 9px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15) !important;
+    line-height: 1.6 !important;
+  }
+  .leaflet-tooltip::before { border: none !important; }
+
+  /* ── Cell site icon ─────────────────────────────────── */
+  .cell-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 4px;
+    border: 2px solid rgba(255,255,255,0.9);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px; font-weight: 700;
+    color: #000;
+    text-shadow: none;
+  }
+
+  /* Pulse animation for cell sites */
+  .cell-pulse {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 26px; height: 26px;
+    border-radius: 4px;
+    animation: pulse 2.4s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes pulse {
+    0%   { opacity: 0.7; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0;   transform: translate(-50%,-50%) scale(3); }
+  }
+
+  .carrier-grid { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+  .carr-row { display: flex; align-items: center; gap: 8px; }
+  .carr-cell {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem; font-weight: 700;
+    width: 14px; text-align: center; flex-shrink: 0;
+  }
+  .carr-sel {
+    flex: 1;
+    background: rgba(255,252,220,0.9);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    padding: 3px 5px;
+    cursor: pointer;
+    outline: none;
+  }
+  .carr-sel:focus { border-color: var(--accent); }
+
+  /* ── HELP button ────────────────────────────────────── */
+  #help-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #fff;
+    background: linear-gradient(180deg, #3a8ef6 0%, #1a5fd4 55%, #0e3fa8 100%);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    cursor: pointer;
+    box-shadow:
+      0 1px 0 #0a2e82,
+      0 3px 0 #07206a,
+      0 4px 0 #051650,
+      0 5px 8px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.35);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    transform: translateY(0);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    user-select: none;
+  }
+  #help-btn:hover {
+    background: linear-gradient(180deg, #4f9fff 0%, #2470e8 55%, #1248c0 100%);
+    box-shadow:
+      0 1px 0 #0a2e82,
+      0 4px 0 #07206a,
+      0 5px 0 #051650,
+      0 7px 12px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  #help-btn:active {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 #0a2e82,
+      0 1px 0 #07206a,
+      0 2px 4px rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  /* ── Help modal ─────────────────────────────────────── */
+  #help-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+  }
+  #help-overlay.open { display: flex; }
+  #help-modal {
+    background: #fdf8e1;
+    border: 1px solid rgba(160,130,40,0.3);
+    border-radius: 10px;
+    padding: 22px 26px 18px;
+    max-width: 540px;
+    width: 92%;
+    max-height: 82vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    position: relative;
+  }
+  #help-modal h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.05rem; font-weight: 700;
+    letter-spacing: 3px; color: #1a5fd4;
+    text-transform: uppercase;
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 2px solid #1a5fd4;
+  }
+  #help-modal h3 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 2px; color: #7a5c00;
+    text-transform: uppercase; margin: 14px 0 5px;
+  }
+  #help-modal p, #help-modal li {
+    font-size: 0.72rem; color: #3a2e00;
+    line-height: 1.65; margin-bottom: 4px;
+  }
+  #help-modal ul { padding-left: 16px; margin: 0; }
+  .step-badge {
+    display: inline-block; background: #1a5fd4; color: #fff;
+    font-family: 'Rajdhani', sans-serif; font-size: 0.65rem;
+    font-weight: 700; letter-spacing: 1.5px; border-radius: 3px;
+    padding: 1px 7px; margin-right: 5px; vertical-align: middle;
+  }
+  .hlkey {
+    display: inline-block; background: rgba(0,0,0,0.07);
+    border: 1px solid rgba(0,0,0,0.15); border-radius: 3px;
+    padding: 0 5px; font-size: 0.65rem;
+    font-family: 'Share Tech Mono', monospace; color: #3a2e00;
+  }
+  #help-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; font-size: 1.3rem;
+    color: #9a8840; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+  }
+  #help-close:hover { background: rgba(0,0,0,0.07); color: #3a2e00; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ML3 param sections — shown/hidden by JS */
+  .ml3-params { display: none; }
+  .ml3-params.active { display: block; }
+  #ml3-status {
+    font-size: 0.6rem; color: var(--muted); text-align: center;
+    margin: 3px 0 1px; letter-spacing: 1px; min-height: 14px;
+  }
+  #ml3-prog-wrap {
+    width: 100%; height: 7px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 4px; overflow: hidden;
+    margin: 4px 0 2px; display: none;
+  }
+  #ml3-prog-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #1a6b1a, #7ab800);
+    border-radius: 4px;
+    transition: width 0.12s ease;
+  }
+  #ml3-eta {
+    font-size: 0.57rem; color: var(--muted);
+    text-align: right; min-height: 11px; margin-bottom: 1px;
+  }
+  #controls { overflow-y: auto; max-height: calc(100vh - 60px); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <div>
+    <h1>LTE Cell Boundary Simulator <span style="font-size:0.7em;opacity:0.6">v5</span></h1>
+    <div class="sub">Plano, Texas · 4-Cell Network · N/W = CLR800 · S/E = AWS-1 · RSRP Association</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="ts" id="ts">--:--:--</div>
+    <button id="help-btn">? HELP</button>
+  </div>
+</div>
+
+<!-- Main area: Step1 + Step2 side by side -->
+<div id="main-area">
+
+<!-- Map (Step 1) -->
+<div id="map-wrap">
+  <div id="map"></div>
+
+  <!-- Controls panel -->
+  <div class="fpanel" id="controls">
+    <div class="panel-title">⚙&nbsp; Parameters</div>
+
+    <div class="ctrl-row">
+      <span class="ctrl-label">UE COUNT (M)</span>
+      <span class="ctrl-val" id="m-val">1000</span>
+    </div>
+    <input type="range" id="m-sl" min="10" max="5000" value="1000" step="10">
+
+    <div class="ctrl-row">
+      <span class="ctrl-label">DOT RADIUS (px)</span>
+      <span class="ctrl-val" id="dot-val">3</span>
+    </div>
+    <input type="range" id="dot-sl" min="1" max="6" value="3" step="1">
+
+    <div class="ctrl-row">
+      <span class="ctrl-label">RANDOM FACTOR R (dB)</span>
+      <span class="ctrl-val" id="r-val">5</span>
+    </div>
+    <input type="range" id="r-sl" min="0" max="20" value="5" step="1">
+
+    <div class="toggle-row">
+      <input type="checkbox" id="map-tog" checked>
+      <label for="map-tog" class="ctrl-label" style="cursor:pointer">SHOW STREET MAP</label>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="sec-tog">
+      <label for="sec-tog" class="ctrl-label" style="cursor:pointer">SHOW SECTORS</label>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="cov-tog">
+      <label for="cov-tog" class="ctrl-label" style="cursor:pointer">SHOW COVERAGE RINGS</label>
+    </div>
+
+    <div class="panel-title" style="margin-top:10px">📡&nbsp; Carriers</div>
+    <div class="carrier-grid">
+      <div class="carr-row">
+        <span class="carr-cell" style="color:var(--cell-N)">N</span>
+        <select class="carr-sel" id="carr-N">
+          <option value="800"  selected>CLR 800 MHz</option>
+          <option value="2100">AWS 2100 MHz</option>
+        </select>
+      </div>
+      <div class="carr-row">
+        <span class="carr-cell" style="color:var(--cell-W)">W</span>
+        <select class="carr-sel" id="carr-W">
+          <option value="800"  selected>CLR 800 MHz</option>
+          <option value="2100">AWS 2100 MHz</option>
+        </select>
+      </div>
+      <div class="carr-row">
+        <span class="carr-cell" style="color:var(--cell-S)">S</span>
+        <select class="carr-sel" id="carr-S">
+          <option value="800" selected>CLR 800 MHz</option>
+          <option value="2100">AWS 2100 MHz</option>
+        </select>
+      </div>
+      <div class="carr-row">
+        <span class="carr-cell" style="color:var(--cell-E)">E</span>
+        <select class="carr-sel" id="carr-E">
+          <option value="800" selected>CLR 800 MHz</option>
+          <option value="2100">AWS 2100 MHz</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn" id="sim-btn">▶&nbsp; Simulate</button>
+
+    <div class="panel-title" style="margin-top:12px">⬡&nbsp; Step 3</div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">GRID SIZE (G×G)</span>
+      <span class="ctrl-val" id="g-val">20</span>
+    </div>
+    <input type="range" id="g-sl" min="5" max="60" value="20" step="1">
+    <button class="btn" id="step2-btn" style="border-color:#b06000;color:#b06000;background:rgba(176,96,0,0.08)">⬡&nbsp; Next Step</button>
+    <div style="text-align:center;margin-top:5px;font-size:0.6rem;color:var(--muted);letter-spacing:1px" id="step-phase">PRESS TO RUN STEP 2</div>
+
+    <div class="panel-title" style="margin-top:12px">🔬&nbsp; ML3 Boundary</div>
+
+    <div class="ctrl-row" style="margin-bottom:4px">
+      <span class="ctrl-label">METHOD</span>
+    </div>
+    <select class="carr-sel" id="ml3-method" style="width:100%;margin-bottom:8px;font-size:0.65rem;padding:4px 6px">
+      <option value="kde">Gaussian KDE</option>
+      <option value="svm">SVM (RBF kernel)</option>
+      <option value="nn" selected>Neural Network</option>
+    </select>
+
+    <!-- Gaussian KDE params -->
+    <div class="ml3-params" id="params-kde">
+      <div class="ctrl-row">
+        <span class="ctrl-label">BANDWIDTH σ</span>
+        <span class="ctrl-val" id="kde-sigma-val">0.25</span>
+      </div>
+      <input type="range" id="kde-sigma" min="0.05" max="0.8" value="0.25" step="0.05">
+    </div>
+
+    <!-- SVM params -->
+    <div class="ml3-params" id="params-svm">
+      <div class="ctrl-row">
+        <span class="ctrl-label">MARGIN C</span>
+        <span class="ctrl-val" id="svm-c-val">2.0</span>
+      </div>
+      <input type="range" id="svm-c" min="0.1" max="10" value="2.0" step="0.1">
+      <div class="ctrl-row">
+        <span class="ctrl-label">RBF σ</span>
+        <span class="ctrl-val" id="svm-sigma-val">0.25</span>
+      </div>
+      <input type="range" id="svm-sigma" min="0.05" max="0.8" value="0.25" step="0.05">
+    </div>
+
+    <div class="ml3-params active" id="params-nn">
+      <div class="ctrl-row">
+        <span class="ctrl-label">HIDDEN UNITS</span>
+        <span class="ctrl-val" id="nn-hidden-val">16</span>
+      </div>
+      <input type="range" id="nn-hidden" min="4" max="32" value="16" step="4">
+      <div class="ctrl-row">
+        <span class="ctrl-label">EPOCHS</span>
+        <span class="ctrl-val" id="nn-epochs-val">500</span>
+      </div>
+      <input type="range" id="nn-epochs" min="100" max="2000" value="500" step="100">
+    </div>
+
+    <!-- Boundary grid resolution -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">BOUNDARY RES</span>
+      <span class="ctrl-val" id="res-val">60</span>
+    </div>
+    <input type="range" id="res-sl" min="20" max="100" value="60" step="10">
+
+    <!-- Boundary line thickness -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">LINE THICKNESS</span>
+      <span class="ctrl-val" id="lw-val">5</span>
+    </div>
+    <input type="range" id="lw-sl" min="1" max="8" value="5" step="0.5">
+
+    <div id="ml3-status"></div>
+    <div id="ml3-prog-wrap"><div id="ml3-prog-bar"></div></div>
+    <div id="ml3-eta"></div>
+  </div>
+
+  <!-- Legend panel -->
+  <div class="fpanel" id="legend">
+    <div class="panel-title">Cell · Band · UEs</div>
+
+    <div class="leg-item">
+      <div class="leg-dot" style="background:var(--cell-N);color:var(--cell-N)"></div>
+      <div class="leg-meta">Cell N<span class="leg-band">CLR 800 MHz · ↓ South</span></div>
+      <div class="leg-count" style="color:var(--cell-N)" id="cnt-N">—</div>
+    </div>
+    <div class="leg-item">
+      <div class="leg-dot" style="background:var(--cell-W);color:var(--cell-W)"></div>
+      <div class="leg-meta">Cell W<span class="leg-band">CLR 800 MHz · → East</span></div>
+      <div class="leg-count" style="color:var(--cell-W)" id="cnt-W">—</div>
+    </div>
+    <div class="leg-item">
+      <div class="leg-dot" style="background:var(--cell-S);color:var(--cell-S)"></div>
+      <div class="leg-meta">Cell S<span class="leg-band">AWS-1 2100 MHz · ↑ North</span></div>
+      <div class="leg-count" style="color:var(--cell-S)" id="cnt-S">—</div>
+    </div>
+    <div class="leg-item">
+      <div class="leg-dot" style="background:var(--cell-E);color:var(--cell-E)"></div>
+      <div class="leg-meta">Cell E<span class="leg-band">AWS-1 2100 MHz · ← West</span></div>
+      <div class="leg-count" style="color:var(--cell-E)" id="cnt-E">—</div>
+    </div>
+
+    <hr class="leg-divider">
+    <div class="leg-item" style="margin-bottom:4px">
+      <div class="leg-meta" style="color:var(--muted)">CLR 800 UEs</div>
+      <div class="leg-count" style="color:var(--text)" id="cnt-800">—</div>
+    </div>
+    <div class="leg-item" style="margin-bottom:4px">
+      <div class="leg-meta" style="color:var(--muted)">AWS-1 UEs</div>
+      <div class="leg-count" style="color:var(--text)" id="cnt-aws">—</div>
+    </div>
+    <div class="leg-item" style="margin-bottom:0">
+      <div class="leg-meta" style="color:var(--muted)">Total</div>
+      <div class="leg-count" style="color:var(--accent)" id="cnt-tot">—</div>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="fpanel" id="stats">
+    <div class="stat">AVG RSRP <span id="avg-rsrp">—</span> dBm</div>
+    <div class="stat">MIN <span id="min-rsrp">—</span> dBm</div>
+    <div class="stat">MAX <span id="max-rsrp">—</span> dBm</div>
+    <div class="stat">BEST CELL <span id="best-cell">—</span></div>
+  </div>
+</div><!-- end #map-wrap -->
+
+<!-- Step 2 pane -->
+<div id="step2-pane">
+  <div id="map2"></div>
+  <div id="step2-title">GRID MAP · CELL N BOUNDARY</div>
+  <div id="step2-legend">
+    <div class="panel-title" style="margin-bottom:7px">Grid Legend</div>
+    <div class="leg-item" style="margin-bottom:6px">
+      <div class="leg-dot" style="background:var(--cell-N)"></div>
+      <span class="leg-meta">Cell N dominant · data</span>
+    </div>
+    <div class="leg-item" style="margin-bottom:6px">
+      <div class="leg-dot" style="background:#333;border:1px solid #888"></div>
+      <span class="leg-meta">Other dominant · data</span>
+    </div>
+    <div class="leg-item" style="margin-bottom:6px">
+      <div class="leg-dot" style="background:transparent;border:2px solid var(--cell-N);box-shadow:none"></div>
+      <span class="leg-meta" style="color:var(--muted)">Cell N dominant · M<sub>A</sub></span>
+    </div>
+    <div class="leg-item" style="margin-bottom:0">
+      <div class="leg-dot" style="background:transparent;border:2px solid #555;box-shadow:none"></div>
+      <span class="leg-meta" style="color:var(--muted)">Other dominant · M<sub>O</sub></span>
+    </div>
+    <hr class="leg-divider">
+    <div class="leg-item" style="margin-bottom:0">
+      <div style="width:20px;height:3px;background:#111;border-radius:2px;flex-shrink:0;margin-right:-2px"></div>
+      <span class="leg-meta" style="color:var(--text)">ML3 Boundary</span>
+    </div>
+  </div>
+  <div id="step2-stats">
+    <div>GRID <span id="s2-grid">—</span></div>
+    <div>N-CELLS <span id="s2-ncells">—</span></div>
+    <div>O-CELLS <span id="s2-ocells">—</span></div>
+    <div>EMPTY <span id="s2-empty">—</span></div>
+    <div>MODEL-FILLED <span id="s2-model">—</span></div>
+    <div>A-UEs <span id="s2-nues">—</span></div>
+    <div>O-UEs <span id="s2-oues">—</span></div>
+  </div>
+  <button id="close-step2">✕ CLOSE</button>
+</div><!-- end #step2-pane -->
+
+</div><!-- end #main-area -->
+
+<!-- Help Modal -->
+<div id="help-overlay">
+  <div id="help-modal">
+    <button id="help-close" title="Close">✕</button>
+    <h2>LTE Cell Boundary Simulator — Help</h2>
+
+    <h3>Overview</h3>
+    <p>This app simulates a 4-cell LTE network in Plano, TX (cells N, W, S, E). Each UE device is placed randomly and connected to the cell with the strongest RSRP signal. The ML3 pipeline then learns and draws the effective boundary of Cell N.</p>
+
+    <h3>Step-by-step workflow</h3>
+    <p><span class="step-badge">SIMULATE</span> Place M random UE devices, compute RSRP to all four cells using path loss + antenna gain + shadowing, and color each UE by its serving cell.</p>
+    <p><span class="step-badge">STEP 2</span> Open the Grid Map. A G×G grid overlays the coverage area. Each cell gets a <b style="color:#d42020">red</b> dot if Cell N RSRP dominates, <b>black</b> otherwise. Empty cells have no UEs nearby.</p>
+    <p><span class="step-badge">STEP 3</span> Fill empty grid cells using the deterministic RSRP models M<sub>A</sub> (Cell N) and M<sub>O</sub> (best of W/S/E), shown as hollow rings.</p>
+    <p><span class="step-badge">ML3</span> Fit a binary classifier to the red/black grid labels, then draw the decision boundary (iso-contour at score = 0) on both maps via marching squares.</p>
+
+    <h3>Parameters</h3>
+    <ul>
+      <li><span class="hlkey">M</span> — number of UE devices (10 – 5000)</li>
+      <li><span class="hlkey">Dot Radius</span> — visual size of UE dots (1 – 6 px)</li>
+      <li><span class="hlkey">Random Factor R</span> — shadowing noise added to RSRP (0 – 20 dB)</li>
+      <li><span class="hlkey">G×G Grid</span> — grid resolution for boundary estimation (5 – 60)</li>
+      <li><span class="hlkey">Line Thickness</span> — boundary and sector line width (1 – 8 px)</li>
+      <li><span class="hlkey">Boundary Res</span> — ML3 evaluation grid for marching squares (20 – 100)</li>
+    </ul>
+
+    <h3>ML3 Methods</h3>
+    <ul>
+      <li><b>Gaussian KDE</b> — kernel density ratio; σ controls smoothness. Fast.</li>
+      <li><b>SVM (RBF)</b> — support vector machine with RBF kernel. C = margin softness, σ = kernel width.</li>
+      <li><b>Neural Network</b> — MLP 2 → H → 1 with tanh + sigmoid. Adjust hidden units and epochs.</li>
+    </ul>
+
+    <h3>Carriers</h3>
+    <ul>
+      <li><b>CLR 800 MHz</b> — 46 dBm Tx, wider coverage (~4 km radius)</li>
+      <li><b>AWS 2100 MHz</b> — 43 dBm Tx, tighter coverage (~2.5 km radius)</li>
+    </ul>
+
+    <h3>RSRP model</h3>
+    <p>RSRP = P<sub>tx</sub> − [32.44 + 20 log<sub>10</sub>(f) + 20 log<sub>10</sub>(d)] + G<sub>ant</sub>(θ) + ε</p>
+    <p>Antenna gain follows the 3GPP parabolic model: G<sub>max</sub> − min(12·(θ/θ<sub>3dB</sub>)², 30 dB). Shadowing ε ~ Uniform(−R, +R).</p>
+
+    <h3>Relevant Patents</h3>
+    <p>
+      <a href="https://patents.google.com/patent/US11924778B2/en?oq=US+11%2c924%2c778" target="_blank" style="color:#1a5fd4;text-decoration:none;font-weight:700">US 11,924,778</a>
+      &nbsp;·&nbsp;
+      <a href="https://patents.google.com/patent/US12213083B2/en?oq=US+12%2c213%2c083" target="_blank" style="color:#1a5fd4;text-decoration:none;font-weight:700">US 12,213,083</a>
+    </p>
+  </div>
+</div>
+
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  CELL DEFINITIONS
+//  N,W = 800 MHz (CLR800), boresights pointing toward center
+//  S,E = AWS-1 2100 MHz
+// ══════════════════════════════════════════════════════════════════════
+const CENTER = [33.020, -96.699];
+
+const CELLS = [
+  {
+    id: 'N', name: 'North',
+    lat: 33.042, lng: -96.699,
+    freq: 800,  boresight: 180,   // pointing south toward center
+    P_tx: 46,   G_max: 15, HPBW: 65,
+    color: '#ff3f52', glow: 'rgba(255,63,82,0.35)',
+    fillA: 'rgba(255,63,82,0.08)'
+  },
+  {
+    id: 'W', name: 'West',
+    lat: 33.020, lng: -96.734,
+    freq: 800,  boresight: 90,    // pointing east toward center
+    P_tx: 46,   G_max: 15, HPBW: 65,
+    color: '#3d88ff', glow: 'rgba(61,136,255,0.35)',
+    fillA: 'rgba(61,136,255,0.08)'
+  },
+  {
+    id: 'S', name: 'South',
+    lat: 33.000, lng: -96.699,
+    freq: 800,  boresight: 0,     // pointing north toward center
+    P_tx: 46,   G_max: 15, HPBW: 65,
+    color: '#3ddc84', glow: 'rgba(61,220,132,0.35)',
+    fillA: 'rgba(61,220,132,0.08)'
+  },
+  {
+    id: 'E', name: 'East',
+    lat: 33.020, lng: -96.664,
+    freq: 800,  boresight: 270,   // pointing west toward center
+    P_tx: 46,   G_max: 15, HPBW: 65,
+    color: '#00e0e0', glow: 'rgba(0,224,224,0.35)',
+    fillA: 'rgba(0,224,224,0.08)'
+  }
+];
+
+// Coverage radius for display (km)
+const COV_R = { 800: 4.0, 2100: 2.5 };
+
+// Global UE data store (populated by simulate, consumed by runStep2)
+let ueData = [];
+
+// Simulation bounding box (shared by simulate + step2)
+const BB = { latMin:32.998, latMax:33.044, lngMin:-96.736, lngMax:-96.662 };
+
+// ══════════════════════════════════════════════════════════════════════
+//  MAP INIT  (CartoDB dark tiles)
+// ══════════════════════════════════════════════════════════════════════
+const map = L.map('map', {
+  zoomControl: true,
+  attributionControl: false
+}).setView(CENTER, 13);
+
+const tileLayer = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenStreetMap contributors', maxZoom: 19 }
+).addTo(map);
+
+// ══════════════════════════════════════════════════════════════════════
+//  GEO HELPERS
+// ══════════════════════════════════════════════════════════════════════
+
+/**
+ * Haversine distance in km between two lat/lng points.
+ */
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, r = Math.PI / 180;
+  const dlat = (lat2 - lat1) * r;
+  const dlng = (lng2 - lng1) * r;
+  const a = Math.sin(dlat/2)**2
+          + Math.cos(lat1*r) * Math.cos(lat2*r) * Math.sin(dlng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * True bearing (degrees) from point 1 → point 2.
+ */
+function bearingTo(lat1, lng1, lat2, lng2) {
+  const r = Math.PI / 180;
+  const dlng = (lng2 - lng1) * r;
+  const y = Math.sin(dlng) * Math.cos(lat2 * r);
+  const x = Math.cos(lat1*r)*Math.sin(lat2*r) - Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos(dlng);
+  return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+}
+
+/**
+ * New lat/lng from origin, bearing (deg), distance (km).
+ */
+function destLatLng(lat, lng, bearingDeg, distKm) {
+  const R = 6371;
+  const d = distKm / R;
+  const b = bearingDeg * Math.PI / 180;
+  const lat1 = lat * Math.PI / 180;
+  const lng1 = lng * Math.PI / 180;
+  const lat2 = Math.asin(Math.sin(lat1)*Math.cos(d)
+                         + Math.cos(lat1)*Math.sin(d)*Math.cos(b));
+  const lng2 = lng1 + Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(lat1),
+                                  Math.cos(d) - Math.sin(lat1)*Math.sin(lat2));
+  return [lat2 * 180/Math.PI, lng2 * 180/Math.PI];
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  RSRP MODEL
+//  RSRP = P_tx - PathLoss(d,f) + AntennaGain(θ) + ε
+//  PathLoss: free-space log-distance  32.44 + 20log10(f_MHz) + 20log10(d_km)
+//  AntennaGain: 3GPP parabolic  G_max - min(12*(θ/HPBW)², FLA)  [FLA=30dB]
+//  ε: uniform shadowing in [-R, +R] dB
+// ══════════════════════════════════════════════════════════════════════
+function computeRSRP(ueLat, ueLng, cell, R_factor) {
+  const d_km = Math.max(0.05, haversineKm(ueLat, ueLng, cell.lat, cell.lng));
+  const PL   = 32.44 + 20*Math.log10(cell.freq) + 20*Math.log10(d_km);
+  const bear  = bearingTo(cell.lat, cell.lng, ueLat, ueLng);
+  // signed angular offset from boresight, wrapped to [-180,180]
+  const delta = ((bear - cell.boresight) % 360 + 540) % 360 - 180;
+  const G_ant = cell.G_max - Math.min(12 * (delta / cell.HPBW)**2, 30);
+  const eps   = (Math.random() - 0.5) * 2 * R_factor;
+  return cell.P_tx - PL + G_ant + eps;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  LAYER GROUPS
+// ══════════════════════════════════════════════════════════════════════
+let ueLayer     = L.layerGroup().addTo(map);
+let sectorLayer = L.layerGroup();              // off by default
+let covLayer    = L.layerGroup();              // coverage rings — off by default
+let cellLayer   = L.layerGroup().addTo(map);
+
+// ══════════════════════════════════════════════════════════════════════
+//  DRAW SECTOR POLYGONS  (wedge shapes for antenna boresight + HPBW)
+// ══════════════════════════════════════════════════════════════════════
+function drawSectors() {
+  sectorLayer.clearLayers();
+  const lw = parseFloat(document.getElementById('lw-sl').value);
+  CELLS.forEach(cell => {
+    const r = COV_R[cell.freq] * 1.1;
+    const hw = cell.HPBW / 2;
+    const pts = [[cell.lat, cell.lng]];
+    for (let a = -hw; a <= hw; a += 2) {
+      pts.push(destLatLng(cell.lat, cell.lng, (cell.boresight + a + 360) % 360, r));
+    }
+    pts.push([cell.lat, cell.lng]);
+    L.polygon(pts, {
+      color: cell.color,
+      fillColor: cell.color,
+      fillOpacity: 0.09,
+      weight: lw,
+      opacity: 0.5,
+      dashArray: '5 4'
+    }).addTo(sectorLayer);
+    // Boresight line
+    const tip = destLatLng(cell.lat, cell.lng, cell.boresight, r * 0.95);
+    L.polyline([[cell.lat, cell.lng], tip], {
+      color: cell.color, weight: Math.max(1, lw - 1), opacity: 0.35, dashArray: '3 6'
+    }).addTo(sectorLayer);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DRAW COVERAGE RINGS
+// ══════════════════════════════════════════════════════════════════════
+function drawCoverageRings() {
+  covLayer.clearLayers();
+  CELLS.forEach(cell => {
+    L.circle([cell.lat, cell.lng], {
+      radius: COV_R[cell.freq] * 1000,
+      color: cell.color,
+      fillOpacity: 0,
+      weight: 1,
+      opacity: 0.3,
+      dashArray: '6 6'
+    }).addTo(covLayer);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DRAW CELL SITE MARKERS
+// ══════════════════════════════════════════════════════════════════════
+function drawCellMarkers() {
+  cellLayer.clearLayers();
+  CELLS.forEach(cell => {
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div style="position:relative;width:30px;height:30px">
+          <div class="cell-pulse" style="background:${cell.color};opacity:0.15;"></div>
+          <div class="cell-icon" style="background:${cell.color};box-shadow:0 0 12px ${cell.glow};position:relative;z-index:1">
+            ${cell.id}
+          </div>
+        </div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+    const freq_label = cell.freq === 800 ? 'CLR 800 MHz' : 'AWS-1 2100 MHz';
+    const bdir = { 0:'↑ North', 90:'→ East', 180:'↓ South', 270:'← West' }[cell.boresight] || `${cell.boresight}°`;
+    L.marker([cell.lat, cell.lng], { icon })
+      .bindTooltip(
+        `<b style="color:${cell.color}">Cell ${cell.id} (${cell.name})</b><br>`
+        + `Band: ${freq_label}<br>`
+        + `Boresight: ${bdir}<br>`
+        + `Tx Power: ${cell.P_tx} dBm · Gain: ${cell.G_max} dBi · HPBW: ${cell.HPBW}°`,
+        { permanent: false, sticky: false }
+      )
+      .addTo(cellLayer);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SIMULATE — place M UEs, compute RSRP, assign to best cell
+// ══════════════════════════════════════════════════════════════════════
+function simulate() {
+  const M        = parseInt(document.getElementById('m-sl').value);
+  const dotR     = parseInt(document.getElementById('dot-sl').value);
+  const R_factor = parseFloat(document.getElementById('r-sl').value);
+
+  ueLayer.clearLayers();
+  ueData = [];
+
+  const counts = { N:0, W:0, S:0, E:0 };
+  let cnt800=0, cntAWS=0;
+  const rsrpArr = [];
+
+  const cellMap = {};
+  CELLS.forEach(c => { cellMap[c.id] = c; });
+
+  for (let i = 0; i < M; i++) {
+    const lat = BB.latMin + Math.random() * (BB.latMax - BB.latMin);
+    const lng = BB.lngMin + Math.random() * (BB.lngMax - BB.lngMin);
+
+    // Compute RSRP to ALL cells (needed for STEP2 grid analysis)
+    const rsrpAll = {};
+    CELLS.forEach(cell => { rsrpAll[cell.id] = computeRSRP(lat, lng, cell, R_factor); });
+
+    // Best cell
+    const bestEntry = Object.entries(rsrpAll).reduce((a,b) => b[1]>a[1]?b:a);
+    const bestCellId = bestEntry[0];
+    const bestRSRP   = bestEntry[1];
+    const bestCell   = cellMap[bestCellId];
+
+    // Best RSRP among non-N cells (O signal strength)
+    const bestOtherRSRP = Math.max(...Object.entries(rsrpAll)
+      .filter(([id]) => id !== 'N').map(([,v]) => v));
+
+    // Store UE record for STEP2
+    ueData.push({ lat, lng, bestCellId, rsrpN: rsrpAll['N'], bestOtherRSRP });
+
+    rsrpArr.push(bestRSRP);
+    counts[bestCell.id]++;
+    if (bestCell.freq === 800) cnt800++; else cntAWS++;
+
+    // UE circle marker
+    L.circleMarker([lat, lng], {
+      radius:      dotR,
+      fillColor:   bestCell.color,
+      color:       'rgba(0,0,0,0.5)',
+      weight:      0.5,
+      fillOpacity: 0.88
+    })
+    .bindTooltip(
+      `<b style="color:${bestCell.color}">→ Cell ${bestCell.id}</b><br>`
+      + `Lat ${lat.toFixed(5)}  Lng ${lng.toFixed(5)}<br>`
+      + `RSRP: <b>${bestRSRP.toFixed(1)} dBm</b><br>`
+      + `Band: ${bestCell.freq === 800 ? 'CLR 800' : 'AWS-1 2100'} MHz`,
+      { sticky: true }
+    )
+    .addTo(ueLayer);
+  }
+
+  // ── Stats update ──────────────────────────────────────
+  ['N','W','S','E'].forEach(id => {
+    document.getElementById(`cnt-${id}`).textContent = counts[id];
+  });
+  document.getElementById('cnt-800').textContent = cnt800;
+  document.getElementById('cnt-aws').textContent = cntAWS;
+  document.getElementById('cnt-tot').textContent = M;
+
+  const sum  = rsrpArr.reduce((a, b) => a + b, 0);
+  const avg  = sum / rsrpArr.length;
+  const minR = rsrpArr.reduce((a,b) => Math.min(a,b),  Infinity);
+  const maxR = rsrpArr.reduce((a,b) => Math.max(a,b), -Infinity);
+  document.getElementById('avg-rsrp').textContent = avg.toFixed(1);
+  document.getElementById('min-rsrp').textContent = minR.toFixed(1);
+  document.getElementById('max-rsrp').textContent = maxR.toFixed(1);
+
+  // Update legend band labels to reflect current carrier
+  CELLS.forEach(cell => {
+    const label = cell.freq === 800 ? 'CLR 800 MHz' : 'AWS-1 2100 MHz';
+    const dir = { 180:'↓ South', 90:'→ East', 0:'↑ North', 270:'← West' }[cell.boresight] || '';
+    const el = document.querySelector(`#legend .leg-item:nth-child(${CELLS.indexOf(cell)+2}) .leg-band`);
+    if (el) el.textContent = `${label} · ${dir}`;
+  });
+
+  // Dominant cell
+  const best = Object.entries(counts).reduce((a,b) => b[1] > a[1] ? b : a);
+  const bc   = cellMap[best[0]];
+  document.getElementById('best-cell').innerHTML =
+    `<span style="color:${bc.color}">${bc.id} (${best[1]} UEs)</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  STEP 2 — CELL N BOUNDARY GRID ANALYSIS
+//  A = UEs connected to Cell N  (colored: cell N color)
+//  O = UEs connected to W/S/E   (colored: black)
+//  G×G grid: each cell colored by avg RSRP_N vs avg bestOtherRSRP
+// ══════════════════════════════════════════════════════════════════════
+let map2 = null;
+let tileLayer2 = null;
+let step2UeLayer   = null;
+let step2GridLayer = null;
+let step2CellLayer = null;
+let syncingMaps    = false;
+let nextStepPhase  = 0;    // 0 = waiting for step2, 1 = waiting for step3, 2 = done
+let emptyGridCells = [];   // cells deferred for step3 model fill
+
+function initMap2(callback) {
+  if (map2) { callback(); return; }
+  map2 = L.map('map2', { zoomControl:true, attributionControl:false })
+           .setView(map.getCenter(), map.getZoom());
+  tileLayer2 = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { attribution:'© OpenStreetMap contributors', maxZoom:19 }
+  );
+  // Respect current toggle state when first created
+  if (document.getElementById('map-tog').checked) tileLayer2.addTo(map2);
+
+  step2UeLayer   = L.layerGroup().addTo(map2);
+  step2GridLayer = L.layerGroup().addTo(map2);
+  step2CellLayer = L.layerGroup().addTo(map2);
+
+  map.on('moveend', () => {
+    if (syncingMaps || !map2) return;
+    syncingMaps = true; map2.setView(map.getCenter(), map.getZoom()); syncingMaps = false;
+  });
+  map2.on('moveend', () => {
+    if (syncingMaps) return;
+    syncingMaps = true; map.setView(map2.getCenter(), map2.getZoom()); syncingMaps = false;
+  });
+  callback();
+}
+
+// ── Shared grid setup (used by both steps) ──────────────────────────
+function buildBins(G) {
+  const { latMin, latMax, lngMin, lngMax } = BB;
+  const dLat = (latMax - latMin) / G;
+  const dLng = (lngMax - lngMin) / G;
+  const bins = Array.from({length:G}, () =>
+    Array.from({length:G}, () => ({rsrpN:[], rsrpO:[]}))
+  );
+  ueData.forEach(ue => {
+    const gi = Math.min(G-1, Math.floor((ue.lat - latMin) / dLat));
+    const gj = Math.min(G-1, Math.floor((ue.lng - lngMin) / dLng));
+    if (gi >= 0 && gj >= 0) {
+      bins[gi][gj].rsrpN.push(ue.rsrpN);
+      bins[gi][gj].rsrpO.push(ue.bestOtherRSRP);
+    }
+  });
+  return { bins, dLat, dLng };
+}
+
+const mean = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+
+// ── STEP 2: draw data-driven dots; skip empty cells ──────────────────
+function runGridStep2() {
+  const G      = parseInt(document.getElementById('g-sl').value);
+  const cellN  = CELLS.find(c => c.id === 'N');
+  const { bins, dLat, dLng } = buildBins(G);
+  const { latMin, latMax, lngMin, lngMax } = BB;
+
+  step2GridLayer.clearLayers();
+  step2CellLayer.clearLayers();
+  emptyGridCells = [];
+  fullGridData   = [];
+  boundaryLayer1.clearLayers();
+  if (boundaryLayer2) boundaryLayer2.clearLayers();
+
+  // Cell site markers
+  CELLS.forEach(cell => {
+    const icon = L.divIcon({
+      className:'',
+      html:`<div class="cell-icon" style="background:${cell.color};width:22px;height:22px;font-size:10px">${cell.id}</div>`,
+      iconSize:[22,22], iconAnchor:[11,11]
+    });
+    L.marker([cell.lat, cell.lng], { icon }).addTo(step2CellLayer);
+  });
+
+  let nCells=0, oCells=0, emptyCells=0;
+  let nUEs=0, oUEs=0;
+  ueData.forEach(ue => { ue.bestCellId==='N' ? nUEs++ : oUEs++; });
+
+  for (let i = 0; i < G; i++) {
+    for (let j = 0; j < G; j++) {
+      const bin      = bins[i][j];
+      const cellLat1 = latMin + i * dLat;
+      const cellLat2 = cellLat1 + dLat;
+      const cellLng1 = lngMin + j * dLng;
+      const cellLng2 = cellLng1 + dLng;
+      const cLat     = (cellLat1 + cellLat2) / 2;
+      const cLng     = (cellLng1 + cellLng2) / 2;
+
+      const avgA = mean(bin.rsrpN);
+      const avgO = mean(bin.rsrpO);
+
+      if (avgA === null) {
+        // Remember for step3
+        emptyGridCells.push({i, j, cLat, cLng, cellLat1, cellLat2, cellLng1, cellLng2});
+        emptyCells++;
+        continue;
+      }
+
+      const dominated = avgA >= avgO;
+      dominated ? nCells++ : oCells++;
+      drawGridCell(cLat, cLng, cellLat1, cellLat2, cellLng1, cellLng2,
+                   avgA, avgO, bin.rsrpN.length, dominated, false, cellN);
+    }
+  }
+
+  updateStep2Stats(G, nCells, oCells, emptyCells, nUEs, oUEs);
+}
+
+// ── STEP 3: fill empty cells via models M_A / M_O ───────────────────
+function runGridStep3() {
+  const G     = parseInt(document.getElementById('g-sl').value);
+  const cellN = CELLS.find(c => c.id === 'N');
+  const cellsOther = CELLS.filter(c => c.id !== 'N');
+
+  // M_A / M_O: deterministic RSRP at grid centre (R=0)
+  // Placeholder — swap for generative models in a future step.
+  const M_A = (lat, lng) => computeRSRP(lat, lng, cellN, 0);
+  const M_O = (lat, lng) => Math.max(...cellsOther.map(c => computeRSRP(lat, lng, c, 0)));
+
+  let modelN=0, modelO=0;
+
+  emptyGridCells.forEach(({i, j, cLat, cLng, cellLat1, cellLat2, cellLng1, cellLng2}) => {
+    const avgA = M_A(cLat, cLng);
+    const avgO = M_O(cLat, cLng);
+    const dominated = avgA >= avgO;
+    dominated ? modelN++ : modelO++;
+    drawGridCell(cLat, cLng, cellLat1, cellLat2, cellLng1, cellLng2,
+                 avgA, avgO, 0, dominated, true, cellN);
+  });
+
+  // Update model-filled count in stats
+  document.getElementById('s2-model').textContent = emptyGridCells.length;
+  emptyGridCells = []; // all filled
+
+  // Update N/O cell counts
+  const prev_n = parseInt(document.getElementById('s2-ncells').textContent)||0;
+  const prev_o = parseInt(document.getElementById('s2-ocells').textContent)||0;
+  document.getElementById('s2-ncells').textContent = prev_n + modelN;
+  document.getElementById('s2-ocells').textContent = prev_o + modelO;
+  document.getElementById('s2-empty').textContent  = 0;
+}
+
+// ── Shared cell drawing helper ───────────────────────────────────────
+function drawGridCell(cLat, cLng, lat1, lat2, lng1, lng2,
+                      avgA, avgO, ueCount, dominated, fromModel, cellN) {
+  // Store normalized coords + label for ML3 training
+  const xNorm = (cLng - BB.lngMin) / (BB.lngMax - BB.lngMin);
+  const yNorm = (cLat - BB.latMin) / (BB.latMax - BB.latMin);
+  fullGridData.push({ xNorm, yNorm, label: dominated ? 1 : 0 });
+  const fillColor = dominated ? cellN.color : '#222';
+  L.rectangle([[lat1,lng1],[lat2,lng2]], {
+    color:       dominated ? cellN.color : '#555',
+    fillColor,
+    fillOpacity: fromModel ? 0.10 : 0.28,
+    weight:      0.4,
+    opacity:     fromModel ? 0.18 : 0.35,
+    dashArray:   fromModel ? '3 3' : null
+  })
+  .bindTooltip(
+    `Grid (${cLat.toFixed(4)}, ${cLng.toFixed(4)})<br>`
+    + `Source: <b>${fromModel ? 'Model M_A/M_O' : ueCount+' UEs'}</b><br>`
+    + `${fromModel?'M_A':'Avg'} RSRP_N: <b>${avgA.toFixed(1)} dBm</b><br>`
+    + `${fromModel?'M_O':'Avg'} Best-Other: <b>${avgO.toFixed(1)} dBm</b><br>`
+    + `<b>${dominated ? '● Cell N dominant' : '● Other dominant'}</b>`,
+    { sticky: true }
+  )
+  .addTo(step2GridLayer);
+
+  // Center dot: solid = data, hollow ring = model
+  L.circleMarker([cLat, cLng], {
+    radius:      5,
+    fillColor:   fromModel ? 'transparent' : fillColor,
+    color:       dominated ? cellN.color : (fromModel ? '#666' : '#444'),
+    fillOpacity: fromModel ? 0 : 0.95,
+    weight:      fromModel ? 2.0 : 1.0,
+    opacity:     0.85
+  })
+  .bindTooltip(
+    `${fromModel ? '○ Model' : '● Data'} · `
+    + `${dominated ? 'Cell N' : 'Other'} dominant<br>`
+    + `RSRP_N ${avgA.toFixed(1)} dBm vs Other ${avgO.toFixed(1)} dBm`,
+    { sticky: true }
+  )
+  .addTo(step2GridLayer);
+}
+
+function updateStep2Stats(G, nCells, oCells, emptyCells, nUEs, oUEs) {
+  document.getElementById('s2-grid').textContent   = `${G}×${G}`;
+  document.getElementById('s2-ncells').textContent = nCells;
+  document.getElementById('s2-ocells').textContent = oCells;
+  document.getElementById('s2-empty').textContent  = emptyCells;
+  document.getElementById('s2-model').textContent  = '—';
+  document.getElementById('s2-nues').textContent   = nUEs;
+  document.getElementById('s2-oues').textContent   = oUEs;
+}
+
+// ── NEXT STEP button — two-phase state machine ───────────────────────
+async function handleNextStep() {
+  if (!ueData.length) { alert('Run Simulate first.'); return; }
+
+  const pane      = document.getElementById('step2-pane');
+  const phaseLabel = document.getElementById('step-phase');
+  const btn        = document.getElementById('step2-btn');
+
+  if (nextStepPhase === 0) {
+    // ── Phase 1: show Grid Map with data-driven dots ──
+    pane.classList.add('visible');
+    setTimeout(() => map.invalidateSize(), 50);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      initMap2(() => {
+        map2.invalidateSize();
+        runGridStep2();
+        nextStepPhase = 1;
+        phaseLabel.textContent = 'PRESS TO RUN STEP 3 (FILL EMPTY)';
+        btn.style.borderColor  = '#1a6b1a';
+        btn.style.color        = '#1a6b1a';
+        btn.style.background   = 'rgba(26,107,26,0.08)';
+      });
+    }));
+
+  } else if (nextStepPhase === 1) {
+    // ── Phase 2: fill empty cells via M_A / M_O ──────
+    runGridStep3();
+    nextStepPhase = 2;
+    phaseLabel.textContent = 'PRESS TO RUN STEP 4 (ML3 BOUNDARY)';
+    btn.style.borderColor  = '#1a3a8a';
+    btn.style.color        = '#1a3a8a';
+    btn.style.background   = 'rgba(26,58,138,0.08)';
+
+  } else if (nextStepPhase === 2) {
+    // ── Phase 3: fit ML3 and draw boundary ───────────
+    nextStepPhase = 3;
+    btn.textContent        = '↺ Re-run ML3';
+    phaseLabel.textContent = '⏳ ML3 RUNNING…';
+    btn.style.borderColor  = '#1a3a8a';
+    btn.style.color        = '#1a3a8a';
+    btn.style.background   = 'rgba(26,58,138,0.08)';
+    await runStep4();
+    phaseLabel.textContent = '↺ RE-RUN ML3 WITH DIFFERENT PARAMS';
+
+  } else if (nextStepPhase === 3) {
+    // Re-run ML3 (user changed method/params)
+    phaseLabel.textContent = '⏳ ML3 RUNNING…';
+    await runStep4();
+    phaseLabel.textContent = '↺ RE-RUN ML3 WITH DIFFERENT PARAMS';
+  }
+}
+
+let fullGridData = [];   // {xNorm, yNorm, label} populated after step2+3
+let boundaryLayer1 = L.layerGroup().addTo(map);  // boundary on main map
+let boundaryLayer2 = null;                        // boundary on grid map
+
+// ══════════════════════════════════════════════════════════════════════
+//  PROGRESS HELPERS
+// ══════════════════════════════════════════════════════════════════════
+const progWrap = () => document.getElementById('ml3-prog-wrap');
+const progBar  = () => document.getElementById('ml3-prog-bar');
+const progEta  = () => document.getElementById('ml3-eta');
+const statusEl = () => document.getElementById('ml3-status');
+
+function setProgress(frac, statusTxt, etaTxt='') {
+  const pct = Math.min(100, Math.max(0, frac*100)).toFixed(1);
+  progWrap().style.display = 'block';
+  progBar().style.width    = pct+'%';
+  statusEl().textContent   = statusTxt;
+  progEta().textContent    = etaTxt;
+}
+function clearProgress() {
+  progWrap().style.display = 'none';
+  progBar().style.width    = '0%';
+  progEta().textContent    = '';
+}
+const yieldFrame = () => new Promise(r => setTimeout(r, 0));
+
+// ══════════════════════════════════════════════════════════════════════
+//  ML3 — GAUSSIAN KDE  (synchronous grid eval — no training phase)
+// ══════════════════════════════════════════════════════════════════════
+async function trainGaussianKDE(pts, labels, sigma, RES) {
+  setProgress(0.05, `KDE — evaluating ${RES}×${RES} grid… σ=${sigma}`);
+  await yieldFrame();          // one yield so the status text paints
+
+  const inv2s2 = 1 / (2 * sigma * sigma);
+  const r2cut  = (3.5 * sigma) * (3.5 * sigma); // skip pts beyond 3.5σ
+
+  // Separate class arrays for a tiny constant-factor speedup
+  const posX = [], posY = [], negX = [], negY = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (labels[i] === 1) { posX.push(pts[i][0]); posY.push(pts[i][1]); }
+    else                 { negX.push(pts[i][0]); negY.push(pts[i][1]); }
+  }
+  const nPos = posX.length, nNeg = negX.length;
+
+  const scoreGrid = Array.from({length: RES}, (_, i) => {
+    const qy = 1 - i / (RES - 1);
+    return Array.from({length: RES}, (_, j) => {
+      const qx = j / (RES - 1);
+      let pos = 0, neg = 0;
+      for (let k = 0; k < nPos; k++) {
+        const dx = qx - posX[k], dy = qy - posY[k], r2 = dx*dx + dy*dy;
+        if (r2 < r2cut) pos += Math.exp(-r2 * inv2s2);
+      }
+      for (let k = 0; k < nNeg; k++) {
+        const dx = qx - negX[k], dy = qy - negY[k], r2 = dx*dx + dy*dy;
+        if (r2 < r2cut) neg += Math.exp(-r2 * inv2s2);
+      }
+      return pos / (pos + neg + 1e-10) - 0.5;
+    });
+  });
+
+  setProgress(1, `✓ KDE complete — σ=${sigma}  (${nPos} pos / ${nNeg} neg)`);
+  await yieldFrame();
+  return scoreGrid;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ML3 — SVM WITH RBF KERNEL  (async SMO, one pass per yield)
+// ══════════════════════════════════════════════════════════════════════
+async function trainSVM(pts, labels, C, sigma, RES) {
+  const n=pts.length;
+  const rbf=(a,b)=>{const dx=a[0]-b[0],dy=a[1]-b[1];return Math.exp(-(dx*dx+dy*dy)/(2*sigma*sigma));};
+  setProgress(0,'SVM — pre-computing kernel matrix…');await yieldFrame();
+  const K=[];
+  for(let i=0;i<n;i++){
+    K.push(Array.from({length:n},(_,j)=>rbf(pts[i],pts[j])));
+    if(i%40===0){setProgress(0.05*i/n,'SVM — kernel matrix…');await yieldFrame();}
+  }
+  const alphas=new Float64Array(n),y=labels.map(l=>l===1?1:-1);
+  let b=0;
+  const feval=i=>{let s=b;for(let k=0;k<n;k++)if(alphas[k]>1e-8)s+=alphas[k]*y[k]*K[k][i];return s;};
+  const tol=1e-3,maxPasses=25;let passes=0,totalPasses=0;
+  setProgress(0.05,'SVM — SMO training…');await yieldFrame();
+  while(passes<maxPasses){
+    let changed=0;
+    for(let i=0;i<n;i++){
+      const Ei=feval(i)-y[i];
+      if((y[i]*Ei<-tol&&alphas[i]<C)||(y[i]*Ei>tol&&alphas[i]>0)){
+        let j=i;while(j===i)j=Math.floor(Math.random()*n);
+        const Ej=feval(j)-y[j],ai0=alphas[i],aj0=alphas[j];
+        let L,H;
+        if(y[i]!==y[j]){L=Math.max(0,aj0-ai0);H=Math.min(C,C+aj0-ai0);}
+        else{L=Math.max(0,ai0+aj0-C);H=Math.min(C,ai0+aj0);}
+        if(L>=H)continue;
+        const eta=2*K[i][j]-K[i][i]-K[j][j];if(eta>=0)continue;
+        alphas[j]=Math.min(H,Math.max(L,alphas[j]-y[j]*(Ei-Ej)/eta));
+        if(Math.abs(alphas[j]-aj0)<1e-5)continue;
+        alphas[i]+=y[i]*y[j]*(aj0-alphas[j]);
+        const b1=b-Ei-y[i]*(alphas[i]-ai0)*K[i][i]-y[j]*(alphas[j]-aj0)*K[i][j];
+        const b2=b-Ej-y[i]*(alphas[i]-ai0)*K[i][j]-y[j]*(alphas[j]-aj0)*K[j][j];
+        b=(0<alphas[i]&&alphas[i]<C)?b1:(0<alphas[j]&&alphas[j]<C)?b2:(b1+b2)/2;
+        changed++;
+      }
+    }
+    totalPasses++;passes=changed?0:passes+1;
+    const svCount=Array.from(alphas).filter(a=>a>1e-6).length;
+    setProgress(0.05+0.65*(Math.min(totalPasses,maxPasses)/maxPasses),
+      `SVM — pass ${totalPasses}  Δ=${changed}  SVs=${svCount}`);
+    await yieldFrame();
+  }
+  const sv_i=Array.from({length:n},(_,i)=>i).filter(i=>alphas[i]>1e-6);
+  const sv_pts=sv_i.map(i=>pts[i]),sv_ay=sv_i.map(i=>alphas[i]*y[i]),svN=sv_pts.length;
+  const scoreGrid=[];
+  for(let i=0;i<RES;i++){
+    scoreGrid.push(Array.from({length:RES},(_,j)=>{
+      const qx=j/(RES-1),qy=1-(i/(RES-1));
+      let s=b;
+      for(let k=0;k<svN;k++){const dx=sv_pts[k][0]-qx,dy=sv_pts[k][1]-qy;s+=sv_ay[k]*Math.exp(-(dx*dx+dy*dy)/(2*sigma*sigma));}
+      return s;
+    }));
+    if(i%5===0){setProgress(0.70+0.28*(i/RES),`SVM — grid eval… row ${i}/${RES}  SVs=${svN}`);await yieldFrame();}
+  }
+  setProgress(1,`✓ SVM complete — ${svN} support vectors`);await yieldFrame();
+  return scoreGrid;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ML3 — NEURAL NETWORK  (async epoch chunks, live ETA)
+// ══════════════════════════════════════════════════════════════════════
+async function trainNeuralNet(pts, labels, H, epochs, RES) {
+  const n=pts.length,fanIn=Math.sqrt(6/(2+H));
+  const W1=Array.from({length:H},()=>[(Math.random()*2-1)*fanIn,(Math.random()*2-1)*fanIn]);
+  const b1=new Float64Array(H);
+  const W2=Array.from({length:H},()=>(Math.random()*2-1)*Math.sqrt(6/(H+1)));
+  let b2=0;
+  const sig=x=>1/(1+Math.exp(-Math.max(-50,Math.min(50,x))));
+  const lr=0.02,CHUNK=50;let ep=0;const t0=Date.now();
+  setProgress(0,`NN — initialised 2→${H}→1`);await yieldFrame();
+  while(ep<epochs){
+    const end=Math.min(ep+CHUNK,epochs);
+    for(let e=ep;e<end;e++){
+      const idx=Array.from({length:n},(_,i)=>i).sort(()=>Math.random()-0.5);
+      for(const i of idx){
+        const [x0,x1]=pts[i],t=labels[i];
+        const z1=W1.map((w,h)=>w[0]*x0+w[1]*x1+b1[h]);
+        const a1=z1.map(Math.tanh);
+        const z2=W2.reduce((s,w,h)=>s+w*a1[h],b2);
+        const a2=sig(z2),dz2=a2-t;
+        b2-=lr*dz2;
+        for(let h=0;h<H;h++){
+          const g=dz2*(1-a1[h]*a1[h]);
+          W2[h]-=lr*dz2*a1[h];b1[h]-=lr*g;W1[h][0]-=lr*g*x0;W1[h][1]-=lr*g*x1;
+        }
+      }
+    }
+    ep=end;
+    const elapsed=(Date.now()-t0)/1000,rate=ep/elapsed;
+    const eta=rate>0?((epochs-ep)/rate).toFixed(1)+'s':'…';
+    setProgress(ep/epochs*0.70,`NN — epoch ${ep}/${epochs}  (${(ep/epochs*100).toFixed(0)}%)`,`ETA ${eta}`);
+    await yieldFrame();
+  }
+  setProgress(0.70,`NN — evaluating grid…`,'');await yieldFrame();
+  const scoreGrid=[];
+  for(let i=0;i<RES;i++){
+    scoreGrid.push(Array.from({length:RES},(_,j)=>{
+      const x=j/(RES-1),y=1-(i/(RES-1));
+      const a1=W1.map((w,h)=>Math.tanh(w[0]*x+w[1]*y+b1[h]));
+      return sig(W2.reduce((s,w,h)=>s+w*a1[h],b2))-0.5;
+    }));
+    if(i%5===0){setProgress(0.70+0.28*(i/RES),`NN — grid eval… row ${i}/${RES}`,'');await yieldFrame();}
+  }
+  setProgress(1,`✓ NN complete — 2→${H}→1 · ${epochs} epochs`,'');await yieldFrame();
+  return scoreGrid;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  MARCHING SQUARES — extract iso-contour segments at score = 0
+// ══════════════════════════════════════════════════════════════════════
+function marchingSquares(grid, rows, cols) {
+  const segs = [];
+  for (let i = 0; i < rows-1; i++) {
+    for (let j = 0; j < cols-1; j++) {
+      const tl=grid[i][j], tr=grid[i][j+1], bl=grid[i+1][j], br=grid[i+1][j+1];
+      const cfg = (tl>0?8:0)|(tr>0?4:0)|(br>0?2:0)|(bl>0?1:0);
+      if (cfg===0||cfg===15) continue;
+      const lerp = (v0,v1,a,b) => { const t=-v0/(v1-v0); return a+t*(b-a); };
+      const top   = [i,   lerp(tl,tr, j,j+1)];
+      const bot   = [i+1, lerp(bl,br, j,j+1)];
+      const left  = [lerp(tl,bl, i,i+1), j  ];
+      const right = [lerp(tr,br, i,i+1), j+1];
+      switch(cfg) {
+        case 1: case 14: segs.push([left,bot]); break;
+        case 2: case 13: segs.push([bot,right]); break;
+        case 3: case 12: segs.push([left,right]); break;
+        case 4: case 11: segs.push([top,right]); break;
+        case 6: case  9: segs.push([top,bot]); break;
+        case 7: case  8: segs.push([top,left]); break;
+        case 5:  (tl+br>tr+bl)?segs.push([top,left],[bot,right]):segs.push([top,right],[left,bot]); break;
+        case 10: (tl+br>tr+bl)?segs.push([top,right],[left,bot]):segs.push([top,left],[bot,right]); break;
+      }
+    }
+  }
+  return segs;
+}
+
+// Chain disconnected segments into continuous polylines
+function chainSegments(segs) {
+  if (!segs.length) return [];
+  const key = p => `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
+  const adj = {};
+  segs.forEach((s,i) => {
+    const [a,b] = [key(s[0]), key(s[1])];
+    (adj[a]=adj[a]||[]).push({idx:i,end:1});
+    (adj[b]=adj[b]||[]).push({idx:i,end:0});
+  });
+  const used = new Uint8Array(segs.length);
+  const chains = [];
+  for (let start=0; start<segs.length; start++) {
+    if (used[start]) continue;
+    const chain = [segs[start][0], segs[start][1]];
+    used[start] = 1;
+    let tip = key(segs[start][1]);
+    while (adj[tip]) {
+      const next = adj[tip].find(e => !used[e.idx]);
+      if (!next) break;
+      used[next.idx] = 1;
+      chain.push(segs[next.idx][next.end===0?1:0]);
+      tip = key(chain[chain.length-1]);
+    }
+    chains.push(chain);
+  }
+  return chains;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  STEP 4 — FIT ML3 ASYNC, DRAW BOUNDARY ON BOTH MAPS
+// ══════════════════════════════════════════════════════════════════════
+async function runStep4() {
+  if(!fullGridData.length){statusEl().textContent='⚠ Run steps 2+3 first';return;}
+  const method=document.getElementById('ml3-method').value;
+  const RES=parseInt(document.getElementById('res-sl').value);
+  const btn=document.getElementById('step2-btn');
+  btn.disabled=true;
+  clearProgress();await yieldFrame();
+  const pts=fullGridData.map(d=>[d.xNorm,d.yNorm]);
+  const labels=fullGridData.map(d=>d.label);
+  let scoreGrid;
+  try{
+    if(method==='kde'){
+      const sigma=parseFloat(document.getElementById('kde-sigma').value);
+      scoreGrid=await trainGaussianKDE(pts,labels,sigma,RES);
+    }else if(method==='svm'){
+      const C=parseFloat(document.getElementById('svm-c').value);
+      const sigma=parseFloat(document.getElementById('svm-sigma').value);
+      scoreGrid=await trainSVM(pts,labels,C,sigma,RES);
+    }else{
+      const H=parseInt(document.getElementById('nn-hidden').value);
+      const epochs=parseInt(document.getElementById('nn-epochs').value);
+      scoreGrid=await trainNeuralNet(pts,labels,H,epochs,RES);
+    }
+  }catch(e){statusEl().textContent='⚠ Error: '+e.message;btn.disabled=false;return;}
+  setProgress(0.97,'Drawing boundary…');await yieldFrame();
+  const segs=marchingSquares(scoreGrid,RES,RES);
+  const chains=chainSegments(segs);
+  const {latMin,latMax,lngMin,lngMax}=BB;
+  const toLL=(row,col)=>[latMax-(row/(RES-1))*(latMax-latMin),lngMin+(col/(RES-1))*(lngMax-lngMin)];
+  const polylines=chains.map(ch=>ch.map(([r,c])=>toLL(r,c)));
+  const lw = parseFloat(document.getElementById('lw-sl').value);
+  const drawBnd=layer=>{
+    layer.clearLayers();
+    polylines.forEach(p=>{if(p.length<2)return;
+      L.polyline(p,{color:'#fff',weight:lw+2,opacity:0.7,smoothFactor:1.2}).addTo(layer);
+      L.polyline(p,{color:'#111',weight:lw,opacity:0.95,smoothFactor:1.2}).addTo(layer);
+    });
+  };
+  drawBnd(boundaryLayer1);
+  if(map2){if(!boundaryLayer2)boundaryLayer2=L.layerGroup().addTo(map2);drawBnd(boundaryLayer2);}
+  setProgress(1,statusEl().textContent);
+  btn.disabled=false;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  CONTROLS WIRING
+// ══════════════════════════════════════════════════════════════════════
+[['m','m-sl'],['dot','dot-sl'],['r','r-sl'],['g','g-sl'],['res','res-sl'],
+ ['kde-sigma','kde-sigma'],['svm-c','svm-c'],['svm-sigma','svm-sigma'],
+ ['nn-hidden','nn-hidden'],['nn-epochs','nn-epochs']
+].forEach(([key, slId]) => {
+  const sl = document.getElementById(slId);
+  const vl = document.getElementById(`${key}-val`);
+  if (sl && vl) sl.addEventListener('input', () => { vl.textContent = sl.value; });
+});
+
+// LINE THICKNESS slider — redraw sectors live if visible
+document.getElementById('lw-sl').addEventListener('input', () => {
+  document.getElementById('lw-val').textContent = document.getElementById('lw-sl').value;
+  if (document.getElementById('sec-tog').checked) drawSectors();
+});
+document.getElementById('ml3-method').addEventListener('change', function() {
+  document.querySelectorAll('.ml3-params').forEach(el => el.classList.remove('active'));
+  document.getElementById(`params-${this.value}`).classList.add('active');
+  document.getElementById('ml3-status').textContent = '';
+});
+
+function applyCarriers() {
+  CELLS.forEach(cell => {
+    const sel = document.getElementById(`carr-${cell.id}`);
+    const freq = parseInt(sel.value);
+    cell.freq  = freq;
+    cell.P_tx  = freq === 800 ? 46 : 43;
+  });
+}
+
+function refresh() {
+  applyCarriers();
+  drawSectors();
+  if (document.getElementById('sec-tog').checked) sectorLayer.addTo(map);
+  if (document.getElementById('cov-tog').checked) { drawCoverageRings(); covLayer.addTo(map); }
+  drawCellMarkers();
+  simulate();
+  // Reset NEXT STEP state when re-simulating
+  nextStepPhase = 0;
+  emptyGridCells = [];
+  const phaseLabel = document.getElementById('step-phase');
+  const btn = document.getElementById('step2-btn');
+  phaseLabel.textContent = 'PRESS TO RUN STEP 2';
+  btn.style.borderColor = '#b06000'; btn.style.color = '#b06000';
+  btn.style.background  = 'rgba(176,96,0,0.08)';
+  btn.textContent = '⬡ Next Step';
+  btn.disabled = false;
+}
+
+document.getElementById('sim-btn').addEventListener('click', refresh);
+document.getElementById('step2-btn').addEventListener('click', handleNextStep);
+
+document.getElementById('close-step2').addEventListener('click', () => {
+  document.getElementById('step2-pane').classList.remove('visible');
+  setTimeout(() => map.invalidateSize(), 50);
+});
+
+// Street map toggle — applies to BOTH maps
+document.getElementById('map-tog').addEventListener('change', function () {
+  if (this.checked) {
+    tileLayer.addTo(map);
+    if (map2 && tileLayer2) tileLayer2.addTo(map2);
+  } else {
+    map.removeLayer(tileLayer);
+    if (map2 && tileLayer2) map2.removeLayer(tileLayer2);
+  }
+});
+
+// Sector toggle
+document.getElementById('sec-tog').addEventListener('change', function () {
+  if (this.checked) sectorLayer.addTo(map);
+  else              map.removeLayer(sectorLayer);
+});
+
+// Coverage rings toggle
+document.getElementById('cov-tog').addEventListener('change', function () {
+  if (this.checked) { drawCoverageRings(); covLayer.addTo(map); }
+  else              map.removeLayer(covLayer);
+});
+
+// Help modal
+document.getElementById('help-btn').addEventListener('click', () =>
+  document.getElementById('help-overlay').classList.add('open'));
+document.getElementById('help-close').addEventListener('click', () =>
+  document.getElementById('help-overlay').classList.remove('open'));
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget)
+    document.getElementById('help-overlay').classList.remove('open');
+});
+
+// ══════════════════════════════════════════════════════════════════════
+//  TIMESTAMP
+// ══════════════════════════════════════════════════════════════════════
+function updateTS() {
+  document.getElementById('ts').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: false });
+}
+setInterval(updateTS, 1000);
+updateTS();
+
+// ══════════════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════════════
+drawSectors();       // populate layer but don't add to map (checkbox unchecked)
+drawCellMarkers();
+refresh();
+</script></body>
+</html>
