@@ -806,6 +806,7 @@ let cellLayer   = L.layerGroup().addTo(map);
 // ══════════════════════════════════════════════════════════════════════
 function drawSectors() {
   sectorLayer.clearLayers();
+  const lw = parseFloat(document.getElementById('lw-sl').value);
   CELLS.forEach(cell => {
     const r = COV_R[cell.freq] * 1.1;
     const hw = cell.HPBW / 2;
@@ -818,14 +819,14 @@ function drawSectors() {
       color: cell.color,
       fillColor: cell.color,
       fillOpacity: 0.09,
-      weight: 1.5,
+      weight: lw,
       opacity: 0.5,
       dashArray: '5 4'
     }).addTo(sectorLayer);
     // Boresight line
     const tip = destLatLng(cell.lat, cell.lng, cell.boresight, r * 0.95);
     L.polyline([[cell.lat, cell.lng], tip], {
-      color: cell.color, weight: 1, opacity: 0.35, dashArray: '3 6'
+      color: cell.color, weight: Math.max(1, lw - 1), opacity: 0.35, dashArray: '3 6'
     }).addTo(sectorLayer);
   });
 }
@@ -1515,7 +1516,7 @@ async function runStep4() {
 // ══════════════════════════════════════════════════════════════════════
 //  CONTROLS WIRING
 // ══════════════════════════════════════════════════════════════════════
-[['m','m-sl'],['dot','dot-sl'],['r','r-sl'],['g','g-sl'],['res','res-sl'],['lw','lw-sl'],
+[['m','m-sl'],['dot','dot-sl'],['r','r-sl'],['g','g-sl'],['res','res-sl'],
  ['kde-sigma','kde-sigma'],['svm-c','svm-c'],['svm-sigma','svm-sigma'],
  ['nn-hidden','nn-hidden'],['nn-epochs','nn-epochs']
 ].forEach(([key, slId]) => {
@@ -1524,7 +1525,11 @@ async function runStep4() {
   if (sl && vl) sl.addEventListener('input', () => { vl.textContent = sl.value; });
 });
 
-// ML3 method selector — show/hide param blocks
+// LINE THICKNESS slider — redraw sectors live if visible
+document.getElementById('lw-sl').addEventListener('input', () => {
+  document.getElementById('lw-val').textContent = document.getElementById('lw-sl').value;
+  if (document.getElementById('sec-tog').checked) drawSectors();
+});
 document.getElementById('ml3-method').addEventListener('change', function() {
   document.querySelectorAll('.ml3-params').forEach(el => el.classList.remove('active'));
   document.getElementById(`params-${this.value}`).classList.add('active');
