@@ -5,6 +5,21 @@
 * https://fkhafizov.github.io/lte_demos
 
 
+
+```
+/Users/paulpaul/iCloudDocs/code/lte_demos
+(base)  19:34 paulpaul ~/iCloudDocs/code/lte_demos $  ls -ltra
+total 0
+drwxr-xr-x@  4 paulpaul  staff  128 Apr  3 19:23 outage_recovery
+drwxr-xr-x  15 paulpaul  staff  480 Apr  3 19:23 lte_rsrp
+drwx------@  5 paulpaul  staff  160 Apr  3 19:23 rag_analysis
+drwxr-xr-x@  4 paulpaul  staff  128 Apr  3 19:24 choose_best_route
+drwxr-xr-x@  5 paulpaul  staff  160 Apr  3 19:24 map_matching
+drwxr-xr-x@ 18 paulpaul  staff  576 Apr  3 19:24 cell_boundary
+drwx------   3 paulpaul  staff   96 Apr  3 19:25 patents
+```
+
+
 ### iot stuff
 ```
 (base)  03:38 paulpaul ~/Documents/scheduling/demo/archive $  pwd
