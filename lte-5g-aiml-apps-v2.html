@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive LTE, 5G, geospatial, and AI/ML application demos.">
+  <title>LTE/5G AI/ML demos and visualization apps</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2e;
+      --panel-hover: #14203a;
+      --line: #24314f;
+      --ink: #e8ecf5;
+      --ink-dim: #9aa7c2;
+      --teal: #5ed3c8;
+      --violet: #7c8cf8;
+      --amber: #ffb454;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(1100px 620px at 10% -10%, #14213f 0%, transparent 60%),
+        radial-gradient(900px 560px at 100% 5%, #101a35 0%, transparent 58%),
+        var(--bg);
+      font-family: var(--serif);
+      line-height: 1.5;
+    }
+
+    .network-bg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.3;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(1180px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 4.5rem 0 5rem;
+    }
+
+    header {
+      max-width: 900px;
+      margin-bottom: 2.4rem;
+    }
+
+    .eyebrow {
+      margin: 0 0 0.65rem;
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 1rem;
+      font-size: clamp(2.35rem, 5vw, 4.5rem);
+      font-weight: 500;
+      line-height: 1.03;
+      letter-spacing: -0.025em;
+    }
+
+    h1 em {
+      color: var(--teal);
+      font-style: italic;
+    }
+
+    .lede {
+      max-width: 780px;
+      margin: 0;
+      color: var(--ink-dim);
+      font-size: clamp(1rem, 1.6vw, 1.17rem);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 2rem 0 1rem;
+      color: var(--ink-dim);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .section-label::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: var(--line);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      min-height: 210px;
+      flex-direction: column;
+      padding: 1.15rem 1.2rem 1.1rem;
+      overflow: hidden;
+      color: inherit;
+      text-decoration: none;
+      background: rgba(17, 26, 46, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: linear-gradient(var(--teal), var(--violet));
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform 220ms ease;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      background: var(--panel-hover);
+      border-color: var(--teal);
+      transform: translateY(-3px);
+      outline: none;
+    }
+
+    .card:hover::before,
+    .card:focus-visible::before {
+      transform: scaleY(1);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.5rem;
+      padding: 0.18rem 0.5rem;
+      color: var(--teal);
+      background: rgba(94, 211, 200, 0.08);
+      border: 1px solid rgba(94, 211, 200, 0.24);
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .arrow {
+      color: var(--teal);
+      font-family: var(--mono);
+      font-size: 1rem;
+      transition: transform 180ms ease;
+    }
+
+    .card:hover .arrow,
+    .card:focus-visible .arrow {
+      transform: translate(2px, -2px);
+    }
+
+    .card h2 {
+      margin: 0 0 0.55rem;
+      font-family: var(--mono);
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--ink-dim);
+      font-size: 0.9rem;
+      line-height: 1.58;
+    }
+
+    .url {
+      margin-top: auto;
+      padding-top: 0.95rem;
+      color: #667594;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1.2rem;
+      color: #61708d;
+      border-top: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .page { padding-top: 3rem; }
+      .card { min-height: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; }
+      .card, .card::before, .arrow { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="network-bg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g stroke="#2a3a5e" stroke-width="1.2" fill="none">
+      <path d="M20 130 L250 65 L470 190 L720 80 L930 230 L1190 115 L1430 280"/>
+      <path d="M20 130 L300 355 L470 190 L725 410 L930 230 L1190 470 L1430 280"/>
+      <path d="M300 355 L520 570 L725 410 L920 650 L1190 470 L1390 690"/>
+      <path d="M520 570 L340 790 M920 650 L760 820"/>
+    </g>
+    <g fill="#ffb454">
+      <circle cx="20" cy="130" r="4"/><circle cx="250" cy="65" r="4"/>
+      <circle cx="470" cy="190" r="5"/><circle cx="720" cy="80" r="4"/>
+      <circle cx="930" cy="230" r="5"/><circle cx="1190" cy="115" r="4"/>
+      <circle cx="1430" cy="280" r="4"/><circle cx="300" cy="355" r="4"/>
+      <circle cx="725" cy="410" r="5"/><circle cx="1190" cy="470" r="5"/>
+      <circle cx="520" cy="570" r="4"/><circle cx="920" cy="650" r="4"/>
+    </g>
+  </svg>
+
+  <main class="page">
+    <header>
+      <p class="eyebrow">Interactive application collection</p>
+      <h1>LTE/5G AI/ML demos and visualization apps</h1>
+      <p class="lede">
+        Browser-based demonstrations for radio-network modeling, geospatial analytics,
+        outage recovery, classification metrics, route selection, and retrieval-augmented generation.
+      </p>
+    </header>
+
+    <div class="section-label">Radio network &amp; geospatial analytics</div>
+    <section class="card-grid" aria-label="Radio network and geospatial applications">
+      <a class="card" href="https://fkhafizov.github.io/pdes/lte_rsrp_clbr_v4.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">LTE · Calibration</span><span class="arrow">↗</span></div>
+        <h2>LTE RSRP Calibration</h2>
+        <p>Interactive exploration of LTE reference-signal received power. Compare measured and modeled RSRP, examine calibration effects, and study how model parameters change coverage predictions.</p>
+        <div class="url">fkhafizov.github.io/pdes/lte_rsrp_clbr_v4.html</div>
+      </a>
+
+      <a class="card" href="https://fkhafizov.github.io/lte_demos/cell_boundary_v6.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">LTE · Coverage</span><span class="arrow">↗</span></div>
+        <h2>Cell Boundary Explorer</h2>
+        <p>Visualize neighboring LTE cells and the boundaries between their serving regions. Explore how radio conditions and cell parameters affect overlap, dominance, and handover areas.</p>
+        <div class="url">fkhafizov.github.io/lte_demos/cell_boundary_v6.html</div>
+      </a>
+
+      <a class="card" href="ho-optimization.html">
+        <div class="card-top"><span class="tag">LTE/5G · Optimization</span><span class="arrow">↗</span></div>
+        <h2>Hand-over Optimization</h2>
+        <p>Hand-over optimization with XGboost and RL</p>
+        <div class="url">ho-optimization.html</div>
+      </a>
+
+      <a class="card" href="https://fkhafizov.github.io/pdes/outage_recovery.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">Network · Resilience</span><span class="arrow">↗</span></div>
+        <h2>Network Outage Recovery</h2>
+        <p>Explore recovery strategies after a cell or network element becomes unavailable. The demo illustrates how nearby resources can compensate for lost service and reduce coverage gaps.</p>
+        <div class="url">fkhafizov.github.io/pdes/outage_recovery.html</div>
+      </a>
+
+      <a class="card" href="https://fkhafizov.github.io/lte_demos/map_matching_v3.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">Geospatial · ML</span><span class="arrow">↗</span></div>
+        <h2>Map Matching</h2>
+        <p>See how noisy or sparse location observations can be aligned with a road network. Compare raw points with the inferred route and inspect the spatial reasoning behind the match.</p>
+        <div class="url">fkhafizov.github.io/lte_demos/map_matching_v3.html</div>
+      </a>
+    </section>
+
+    <div class="section-label">AI/ML analysis &amp; decision support</div>
+    <section class="card-grid" aria-label="AI and machine-learning applications">
+      <a class="card" href="https://fkhafizov.github.io/pdes/pres_recall_v3.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">ML · Evaluation</span><span class="arrow">↗</span></div>
+        <h2>Precision &amp; Recall</h2>
+        <p>An interactive guide to classification performance. Explore the confusion matrix and observe how decision thresholds and class balance affect precision, recall, and related metrics.</p>
+        <div class="url">fkhafizov.github.io/pdes/pres_recall_v3.html</div>
+      </a>
+
+      <a class="card" href="https://fkhafizov.github.io/pdes/choose_best_route.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">Optimization · Routing</span><span class="arrow">↗</span></div>
+        <h2>Choose the Best Route</h2>
+        <p>Compare alternative routes using multiple criteria rather than distance alone. The app demonstrates how data-driven scoring can support route selection under competing objectives.</p>
+        <div class="url">fkhafizov.github.io/pdes/choose_best_route.html</div>
+      </a>
+
+      <a class="card" href="https://fkhafizov.github.io/pdes/rag_analysis_v3.html" target="_blank" rel="noopener">
+        <div class="card-top"><span class="tag">GenAI · RAG</span><span class="arrow">↗</span></div>
+        <h2>RAG Analysis</h2>
+        <p>Explore a retrieval-augmented generation workflow, from query and document retrieval to selected context and generated response. Inspect how retrieval quality influences the final answer.</p>
+        <div class="url">fkhafizov.github.io/pdes/rag_analysis_v3.html</div>
+      </a>
+    </section>
+
+    <footer>Links open in a new browser tab.</footer>
+  </main>
+</body>
+</html>
