@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Farid Khafizov — SON & RAN Network Automation</title>
+<style>
+:root {
+  --bg:#eef6fb; --card:#fff; --ink:#142536; --muted:#5f7285;
+  --accent:#126a92; --accent2:#0b8a78; --line:#d9e7f0; --soft:#eaf5fa;
+}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(180deg,#e8f4fa 0,#f7fbfd 420px);color:var(--ink);line-height:1.55}
+.wrap{max-width:1180px;margin:auto;padding:48px 24px 72px}
+.hero{background:linear-gradient(135deg,#0f5f86,#128c83);color:white;border-radius:24px;padding:48px;box-shadow:0 18px 45px rgba(21,75,101,.18)}
+.eyebrow{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;opacity:.8}
+h1{font-size:clamp(2.2rem,5vw,4.2rem);line-height:1.05;margin:.35rem 0 1rem;max-width:900px}
+.hero p{font-size:1.14rem;max-width:880px;opacity:.94}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px} .badge{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);padding:7px 12px;border-radius:999px;font-size:.88rem}
+section{margin-top:34px} .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 8px 26px rgba(40,75,95,.07)}
+h2{font-size:1.55rem;margin:0 0 10px;color:#17465f} h3{margin:0 0 8px;color:#17465f} .lead{color:var(--muted);margin-top:0}
+.table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line);margin-top:18px}
+table{width:100%;border-collapse:collapse;min-width:900px;background:white} th{text-align:left;background:#eaf5fa;color:#17465f;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;padding:14px 16px} td{vertical-align:top;padding:16px;border-top:1px solid var(--line)} tr:hover td{background:#fbfdfe}
+.year{width:82px;font-size:1.05rem;color:var(--accent)} .patent{width:35%;font-weight:600} a{color:#08789b;text-decoration:none} a:hover{text-decoration:underline} .inventors{display:block;margin-top:8px;color:#415a6b;font-size:.93rem}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:18px} .mini{background:#f6fbfd;border:1px solid var(--line);border-radius:16px;padding:20px} .mini p{margin-bottom:0;color:var(--muted)}
+.callout{border-left:5px solid var(--accent2);background:#edf9f6;padding:20px 22px;border-radius:0 14px 14px 0;margin-top:18px}
+footer{color:#738697;text-align:center;margin-top:36px;font-size:.85rem}
+@media(max-width:760px){.hero{padding:32px 24px}.grid{grid-template-columns:1fr}.wrap{padding:24px 14px 50px}}
+@media print{body{background:white}.wrap{max-width:none;padding:0}.hero,.card{box-shadow:none}a{color:inherit}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="hero">
+  <div class="eyebrow">Wireless Network Automation Portfolio</div>
+  <h1>SON &amp; Autonomous RAN Optimization</h1>
+  <p>Selected publications and patents by <strong>Farid Khafizov</strong> spanning self-organizing networks, dynamic spectrum management, interference coordination, ML-driven RAN optimization, energy efficiency, outage detection, and self-healing.</p>
+  <div class="badges"><span class="badge">Self-Optimization</span><span class="badge">Self-Healing</span><span class="badge">AI-driven SON</span><span class="badge">RAN Automation</span></div>
+</header>
+
+<section class="card">
+  <h2>Published Research</h2>
+  <p class="lead">Peer-reviewed work related to SON, autonomous radio-resource management, and interference optimization.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Year</th><th>Publication</th><th>SON relevance</th></tr></thead>
+    <tbody><tr><td class='year'><strong>2013</strong></td><td><strong>“Dynamic Spectrum Management for Intercell Interference Coordination in LTE Networks Based on Traffic Patterns”</strong> — Hongcheng Zhuang, Dmitri Shmelkin, Zezhou Luo, Mikhail Pikhletsky, <strong>Farid Khafizov</strong>. <em>IEEE Transactions on Vehicular Technology</em>, 62(5), 1924–1934.</td><td>This is explicitly framed <strong>“from the self-organizing network (SON) viewpoint.”</strong> It dynamically optimizes fractional frequency reuse according to traffic maps and multiple KPIs, targeting call-drop/blocking and throughput. (<a href="https://www.researchgate.net/publication/322300424_Optimized_Dynamic_Cell_Selection_Approach_towards_Intercell_Interference_Reduction_for_Cell-edge_Users_In_LTE-A_Network?utm_source=chatgpt.com" target="_blank" rel="noopener">ResearchGate ↗</a>)</td></tr>
+<tr><td class='year'><strong>2012</strong></td><td><strong>“Traffic-based Dynamic Spectrum Management for Inter-cell Interference Coordination in LTE Networks”</strong> — Zhuang, Luo, Pikhletsky, Shmelkin, <strong>Khafizov</strong>. IEEE GLOBECOM 2012.</td><td>Dynamic spectrum/resource assignment based on traffic conditions—classic <strong>SON self-optimization / ICIC</strong> functionality. (<a href="https://globecom2012.ieee-globecom.org/techprogram_8_2264078594.pdf?utm_source=chatgpt.com" target="_blank" rel="noopener">IEEE GLOBECOM 2012 ↗</a>)</td></tr>
+<tr><td class='year'><strong>2010</strong></td><td><strong>“Uplink Inter-Cell Interference Coordination through Soft Frequency Reuse”</strong> — Mazin Al-Shalash, <strong>Farid Khafizov</strong>, Zhijun Chao, et al., IEEE GLOBECOM 2010. DOI: 10.1109/GLOCOM.2010.5683725.</td><td>Dynamically controls uplink interference through frequency-selective scheduling and soft frequency reuse; closely related to SON interference-management algorithms. (<a href="https://www.researchgate.net/publication/224210811_Uplink_Inter-Cell_Interference_Coordination_through_Soft_Frequency_Reuse?utm_source=chatgpt.com" target="_blank" rel="noopener">ResearchGate ↗</a>)</td></tr></tbody>
+  </table></div>
+  <div class="callout"><strong>Key publication:</strong> The 2013 IEEE Transactions paper explicitly approaches dynamic spectrum management from the <strong>self-organizing network (SON) viewpoint</strong>.</div>
+</section>
+
+<section class="card">
+  <h2>Patents in Network Automation</h2>
+  <p class="lead">Patented technologies covering closed-loop RAN optimization, spectrum and power management, ML-based parameter control, and automated remediation.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Patent</th><th>Technology</th><th>SON relationship</th></tr></thead>
+    <tbody><tr><td class='patent'><strong>US 9,408,210 — “Method, Device and System for Dynamic Frequency Spectrum Optimization”</strong></td><td>Predicts cell traffic, generates alternative spectrum allocations, evaluates them against multiple network KPIs, and automatically chooses an improved allocation. Inventors: Pikhletsky, Luo, Zhuang, <strong>Khafizov</strong>; Huawei.</td><td><strong>Very strong SON self-optimization patent.</strong> It automatically adapts spectrum allocation based on changing network conditions. (<a href="https://patents.justia.com/inventor/farid-khafizov?page=3\&utm_source=chatgpt.com" target="_blank" rel="noopener">Justia Patents ↗</a>)</td></tr>
+<tr><td class='patent'><strong>US 8,665,690 — “System and Method for Uplink Power Control in a Wireless Communications System”</strong></td><td>Dynamically computes uplink power offsets and power-control commands based on measured received power and target values. Inventors include <strong>Farid Khafizov</strong>.</td><td>Radio-resource / interference optimization closely associated with SON optimization. (<a href="https://patents.justia.com/inventor/zhijun-chao?page=2\&utm_source=chatgpt.com" target="_blank" rel="noopener">Justia Patents ↗</a>)</td></tr>
+<tr><td class='patent'><strong>US 11,329,737 / US 11,716,161 — “Systems and Methods for Modification of Radio Access Network Parameters Based on Channel Propagation Models Generated Using Machine Learning Techniques”</strong></td><td>Uses AI/ML to model sectors and channel propagation/interference and then determines actions that modify <strong>RAN configuration parameters</strong>. Inventors: <strong>Farid Khafizov</strong>, Mark Newbury, Venkata Dhulipalla; Verizon.</td><td>This is essentially <strong>AI-driven SON</strong>: measure/model network conditions → determine optimization → modify RAN parameters. (<a href="https://patents.justia.com/inventor/farid-khafizov?utm_source=chatgpt.com" target="_blank" rel="noopener">Justia Patents ↗</a>)</td></tr>
+<tr><td class='patent'><strong>US 11,924,778 / US 12,213,083 — “Method and Apparatus for Optimizing RAN Power Consumption”</strong></td><td>Uses UE field measurements, predicted signal strength, cell boundaries, overlap, and ML-based models to determine optimized cell boundaries while meeting service requirements. <strong>Khafizov & Newbury</strong>, Verizon.</td><td>Strong example of <strong>closed-loop RAN self-optimization</strong>, particularly energy-saving / coverage optimization. (<a href="https://patents.justia.com/patent/12213083?utm_source=chatgpt.com" target="_blank" rel="noopener">Justia Patents ↗</a>)</td></tr>
+<tr><td class='patent'><strong>US 12,621,692 — “Tracking User Equipment Dynamics in Wireless Networks”</strong></td><td>Detects a base-station outage, tracks where affected UEs move, identifies users without service, and can update cellular-network operating parameters. <strong>Khafizov & Ibraheem</strong>, Verizon.</td><td>Fits <strong>SON self-healing / outage compensation</strong> particularly well. (<a href="https://patents.justia.com/patent/20240334216?utm_source=chatgpt.com" target="_blank" rel="noopener">Justia Patents ↗</a>)</td></tr>
+<tr><td class='patent'><strong>US 2024/0365234 — “Systems and Methods for Band-Based Power Saving in a Wireless Network”</strong></td><td>Examines hand-ins by RF band, ranks bands, and selectively applies power-saving behavior at the base station. <br><span class="inventors"><strong>Inventors:</strong> Chin Chiu, Sachin Vargantwar, Farid Khafizov, Asif Dawoodi Gandhi</span></td><td>SON-style automated RAN energy optimization. (<a href="https://patents.justia.com/inventor/farid-khafizov?utm_source=chatgpt.com" target="_blank" rel="noopener">Justia Patents ↗</a>)</td></tr>
+<tr><td class='patent'><strong>US 12,659,246 — “User Equipment Impact Estimation and Remediation”</strong></td><td>Detects network-device failure, uses energy measurements and KPI changes to quantify UE impact, then performs a remedial network action. <strong>Khafizov & Safin</strong>.</td><td>Very close to <strong>SON self-healing</strong>: detect → quantify → remediate.</td></tr></tbody>
+  </table></div>
+</section>
+
+<section class="card">
+  <h2>SON Capability Map</h2>
+  <div class="grid">
+    <div class="mini"><h3>Self-Optimization</h3><p>Dynamic spectrum allocation, ICIC, uplink power control, ML-driven RAN parameter optimization, and energy/coverage optimization.</p></div>
+    <div class="mini"><h3>Self-Healing</h3><p>Outage detection, UE-impact analysis, outage compensation, and automated network remediation.</p></div>
+    <div class="mini"><h3>AI-driven SON</h3><p>ML channel-propagation models, predicted cell boundaries, KPI-driven decisions, and automated RAN configuration changes.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Professional Summary</h2>
+  <p>Developed and patented self-optimizing wireless-network technologies spanning dynamic spectrum management, ICIC, power control, AI/ML-based RAN parameter optimization, coverage and energy optimization, outage detection, UE-impact estimation, and automated remediation/self-healing.</p>
+  <div class="callout">The portfolio combines <strong>peer-reviewed IEEE research</strong> with multiple patents implementing SON-type closed-loop RAN optimization.</div>
+</section>
+
+<footer>Farid Khafizov · SON / RAN Optimization · Network Automation</footer>
+</main>
+</body>
+</html>
